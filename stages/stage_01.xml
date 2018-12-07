@@ -1,0 +1,643 @@
+<?xml version="1.0"?>
+
+<build name="minux" type="live" subject="tools" constructor="yes" stage="01" envpath="/tools/bin:/bin:/usr/bin" arch="x86_64" version="0.0.2" sudo="yes">
+
+	<phase seq="1">
+	
+		<entry type="script/bash" seq="1" cdto="no" download="no" extract="no">
+			<action when="before" seq="1">
+				<line sudo="yes">rm -f /tools</line>
+				<line sudo="yes">ln -sv $PROJECT__TOL /</line>
+			</action>
+		</entry>
+		
+		<entry name="binutils-2.27" type="package/src" seq="2" cdto="yes" download="no" extract="yes">
+		    <filename>binutils-2.27.tar.bz2</filename>
+		    <version>2.27</version>
+		    <checksum type="md5">2869c9bf3e60ee97c74ac2a6bf4e9d68</checksum>
+            <action when="after" seq="1">
+                <line>mkdir -v build</line>
+                <line>cd build</line>
+                <line verbos="yes">
+                    ../configure                     \
+                        --prefix=/tools              \
+                        --with-sysroot=/             \
+                        --with-lib-path=/tools/lib   \
+                        --target=$PROJECT__TGT       \
+                        --disable-nls                \
+                        --disable-werror
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">
+                    case $(uname -m) in
+                        x86_64) mkdir -v /tools/lib &amp;&amp; ln -sv lib /tools/lib64 ;;
+                    esac
+                </line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="gcc-6.2.0" type="package/src" seq="3" cdto="yes" download="no" extract="yes">
+		    <filename>gcc-6.2.0.tar.bz2</filename>
+		    <version>6.2.0</version>
+		    <checksum type="md5">9768625159663b300ae4de2f4745fcc4</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">tar -xf $PROJECT__PKG/mpfr-3.1.4.tar.xz</line>
+                <line verbos="yes">mv -v mpfr-3.1.4 mpfr</line>
+                <line verbos="yes">tar -xf $PROJECT__PKG/gmp-6.1.1.tar.xz</line>
+                <line verbos="yes">mv -v gmp-6.1.1 gmp</line>
+                <line verbos="yes">tar -xf $PROJECT__PKG/mpc-1.0.3.tar.gz</line>
+                <line verbos="yes">mv -v mpc-1.0.3 mpc</line>
+                <line verbos="yes">
+					for file in \
+						$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+					do
+					cp -uv $file{,.orig}
+					sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g' \
+						-e 's@/usr@/tools@g' $file.orig > $file
+					echo '
+					#undef STANDARD_STARTFILE_PREFIX_1
+					#undef STANDARD_STARTFILE_PREFIX_2
+					#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+					#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+						touch $file.orig
+					done
+                </line>
+                <line>mkdir -v build</line>
+                <line>cd build</line>
+                <line verbos="yes">
+					../configure                                          \
+						--target=$PROJECT__TGT                            \
+						--prefix=/tools                                   \
+						--with-glibc-version=2.11                         \
+						--with-sysroot=/                                  \
+						--with-newlib                                     \
+						--without-headers                                 \
+						--with-local-prefix=$PROJECT__TOL                 \
+						--with-native-system-header-dir=/tools/include    \
+						--disable-nls                                     \
+						--disable-shared                                  \
+						--disable-multilib                                \
+						--disable-decimal-float                           \
+						--disable-threads                                 \
+						--disable-libatomic                               \
+						--disable-libgomp                                 \
+						--disable-libmpx                                  \
+						--disable-libquadmath                             \
+						--disable-libssp                                  \
+						--disable-libvtv                                  \
+						--disable-libstdcxx                               \
+						--enable-languages=c,c++
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="linux-4.4.6" type="package/src" seq="4" cdto="yes" download="no" extract="yes">
+		    <filename>linux-4.4.6.tar.xz</filename>
+		    <version>4.4.6</version>
+		    <checksum type="md5">efc822dad2149e40cc908718a4fea1d3</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">make mrproper</line>
+                <line verbos="yes">make INSTALL_HDR_PATH=dest headers_install</line>
+                <line verbos="yes">cp -rv dest/include/* $PROJECT__TOL/include</line>
+            </action>
+		</entry>
+		
+		<entry name="glibc-2.24" type="package/src" seq="5" cdto="yes" download="no" extract="yes">
+		    <filename>glibc-2.24.tar.xz</filename>
+		    <version>4.4.6</version>
+		    <checksum type="md5">97dc5517f92016f3d70d83e3162ad318</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">mkdir -v build</line>
+                <line verbos="yes">cd build</line>
+                <line verbos="yes">
+					../configure                            \
+						--prefix=/tools                     \
+						--host=$PROJECT__TGT                \
+						--build=$(../scripts/config.guess)  \
+						--enable-kernel=2.6.32              \
+						--with-headers=/tools/include       \
+						libc_cv_forced_unwind=yes           \
+						libc_cv_c_cleanup=yes
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="libstdc++-v3" type="package/src" seq="6" cdto="yes" download="no" extract="yes">
+		    <filename>gcc-6.2.0.tar.bz2</filename>
+		    <version>3</version>
+		    <checksum type="md5">9768625159663b300ae4de2f4745fcc4</checksum>
+            <action when="after" seq="1">
+            	<line>pwd</line>
+                <line>mkdir -v build</line>
+                <line>cd build</line>
+                <line verbos="yes">
+					../libstdc++-v3/configure                                         \
+						--host=$PROJECT__TGT                                          \
+						--prefix=/tools                                               \
+						--disable-multilib                                            \
+						--disable-nls                                                 \
+						--disable-libstdcxx-threads                                   \
+						--disable-libstdcxx-pch                                       \
+						--with-gxx-include-dir=/tools/$PROJECT__TGT/include/c++/6.2.0
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="binutils-2.27" type="package/src" seq="7" cdto="yes" download="no" extract="yes">
+		    <filename>binutils-2.27.tar.bz2</filename>
+		    <version>2.27</version>
+		    <checksum type="md5">2869c9bf3e60ee97c74ac2a6bf4e9d68</checksum>
+            <action when="after" seq="1">
+                <line>mkdir -v build</line>
+                <line>cd build</line>
+                <line verbos="yes">
+					CC=$PROJECT__TGT-gcc               \
+					AR=$PROJECT__TGT-ar                \
+					RANLIB=$PROJECT__TGT-ranlib        \
+					../configure                       \
+						--prefix=/tools                \
+						--disable-nls                  \
+						--disable-werror               \
+						--with-lib-path=/tools/lib     \
+						--with-sysroot
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+                
+                <line verbos="yes">make -C ld clean</line>
+                <line verbos="yes">make -C ld LIB_PATH=/usr/lib:/lib</line>
+                <line verbos="yes">cp -v ld/ld-new /tools/bin</line>
+            </action>
+		</entry>
+		
+		<entry name="gcc-6.2.0" type="package/src" seq="8" cdto="yes" download="no" extract="yes">
+			<filename>gcc-6.2.0.tar.bz2</filename>
+			<version>6.2.0</version>
+			<checksum type="md5">9768625159663b300ae4de2f4745fcc4</checksum>
+			<action when="after" seq="1">
+				<line verbos="yes">
+					cat gcc/limitx.h gcc/glimits.h gcc/limity.h > \
+						`dirname $($PROJECT__TGT-gcc -print-libgcc-file-name)`/include-fixed/limits.h
+				</line>
+				<line verbos="yes">
+					for file in \
+						$(find gcc/config -name linux64.h -o -name linux.h -o -name sysv4.h)
+					do
+					cp -uv $file{,.orig}
+					sed -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&amp;@g' \
+						-e 's@/usr@/tools@g' $file.orig > $file
+					echo '
+					#undef STANDARD_STARTFILE_PREFIX_1
+					#undef STANDARD_STARTFILE_PREFIX_2
+					#define STANDARD_STARTFILE_PREFIX_1 "/tools/lib/"
+					#define STANDARD_STARTFILE_PREFIX_2 ""' >> $file
+						touch $file.orig
+					done
+				</line>
+				
+				<line verbos="yes">tar -xf $PROJECT__PKG/mpfr-3.1.4.tar.xz</line>
+				<line verbos="yes">mv -v mpfr-3.1.4 mpfr</line>
+				<line verbos="yes">tar -xf $PROJECT__PKG/gmp-6.1.1.tar.xz</line>
+				<line verbos="yes">mv -v gmp-6.1.1 gmp</line>
+				<line verbos="yes">tar -xf $PROJECT__PKG/mpc-1.0.3.tar.gz</line>
+				<line verbos="yes">mv -v mpc-1.0.3 mpc</line>
+				
+				<line verbos="yes">mkdir -v build</line>
+				<line verbos="yes">cd build</line>
+				
+				<line verbos="yes">
+					CC=$PROJECT__TGT-gcc                                  \
+					CXX=$PROJECT__TGT-g++                                 \
+					AR=$PROJECT__TGT-ar                                   \
+					RANLIB=$PROJECT__TGT-ranlib                           \
+					../configure                                          \
+						--prefix=/tools                                   \
+						--with-local-prefix=/tools                        \
+						--with-native-system-header-dir=/tools/include    \
+						--enable-languages=c,c++                          \
+						--disable-libstdcxx-pch                           \
+						--disable-multilib                                \
+						--disable-bootstrap                               \
+						--disable-libgomp
+				</line>
+				<line verbos="yes">make</line>
+				<line verbos="yes">make install</line>
+				
+				<line verbos="yes">ln -sv gcc /tools/bin/cc</line>
+			</action>
+		</entry>
+		
+		<entry name="ncurses-6.0" type="package/src" seq="9" cdto="yes" download="no" extract="yes">
+		    <filename>ncurses-6.0.tar.gz</filename>
+		    <version>6.0</version>
+		    <checksum type="md5">ee13d052e1ead260d7c28071f46eefb1</checksum>
+            <action when="after" seq="1">
+                <line>sed -i s/mawk// configure</line>
+                <line verbos="yes">
+					./configure             \
+						--prefix=/tools     \
+						--with-shared       \
+						--without-debug     \
+						--without-ada       \
+						--enable-widec      \
+						--enable-overwrite
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="bash-4.3.30" type="package/src" seq="10" cdto="yes" download="no" extract="yes">
+		    <filename>bash-4.3.30.tar.gz</filename>
+		    <version>4.3.30</version>
+		    <checksum type="md5">a27b3ee9be83bd3ba448c0ff52b28447</checksum>
+            <action when="after" seq="1">
+                <line>sed -i s/mawk// configure</line>
+                <line verbos="yes">
+					./configure              \
+						--prefix=/tools      \
+						--with-shared        \
+						--without-debug      \
+						--without-ada        \
+						--enable-widec       \
+						--enable-overwrite
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+                <line verbos="yes">ln -sv bash /tools/bin/sh</line>
+            </action>
+		</entry>
+		
+		<entry name="bzip2-1.0.6" type="package/src" seq="11" cdto="yes" download="no" extract="yes">
+		    <filename>bzip2-1.0.6.tar.gz</filename>
+		    <version>1.0.6</version>
+		    <checksum type="md5">00b516f4704d4a7cb50a1d97e6e8e15b</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">make</line>
+                <line verbos="yes">make PREFIX=/tools install</line>
+            </action>
+		</entry>
+		
+		<entry name="coreutils-8.25" type="package/src" seq="12" cdto="yes" download="no" extract="yes">
+		    <filename>coreutils-8.25.tar.xz</filename>
+		    <version>8.25</version>
+		    <checksum type="md5">070e43ba7f618d747414ef56ab248a48</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=/tools --enable-install-program=hostname</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="diffutils-3.5" type="package/src" seq="13" cdto="yes" download="no" extract="yes">
+		    <filename>diffutils-3.5.tar.xz</filename>
+		    <version>3.5</version>
+		    <checksum type="md5">569354697ff1cfc9a9de3781361015fa</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="file-5.28" type="package/src" seq="14" cdto="yes" download="no" extract="yes">
+		    <filename>file-5.28.tar.gz</filename>
+		    <version>5.28</version>
+		    <checksum type="md5">3f7771424aa855f32094b49571e19b33</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="findutils-4.6.0" type="package/src" seq="15" cdto="yes" download="no" extract="yes">
+		    <filename>findutils-4.6.0.tar.gz</filename>
+		    <version>4.6.0</version>
+		    <checksum type="md5">9936aa8009438ce185bea2694a997fc1</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="gawk-4.1.3" type="package/src" seq="16" cdto="yes" download="no" extract="yes">
+		    <filename>gawk-4.1.3.tar.xz</filename>
+		    <version>4.1.3</version>
+		    <checksum type="md5">97f8f44149ea9b9e94be97f68988be87</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="gettext-0.19.8.1" type="package/src" seq="17" cdto="yes" download="no" extract="yes">
+		    <filename>gettext-0.19.8.1.tar.xz</filename>
+		    <version>0.19.8.1</version>
+		    <checksum type="md5">df3f5690eaa30fd228537b00cb7b7590</checksum>
+            <action when="after" seq="1">
+            	<line>cd gettext-tools</line>
+                <line verbos="yes">EMACS="no" ./configure --prefix=/tools --disable-shared</line>
+                
+                <line verbos="yes">make -C gnulib-lib</line>
+                <line verbos="yes">make -C intl pluralx.c</line>
+                <line verbos="yes">make -C src msgfmt</line>
+                <line verbos="yes">make -C src msgmerge</line>
+                <line verbos="yes">make -C src xgettext</line>
+                <line verbos="yes">cp -v src/{msgfmt,msgmerge,xgettext} /tools/bin</line>
+            </action>
+		</entry>
+		
+		<entry name="grep-2.25" type="package/src" seq="18" cdto="yes" download="no" extract="yes">
+		    <filename>grep-2.25.tar.xz</filename>
+		    <version>2.25</version>
+		    <checksum type="md5">04e96b0e6f0fe6a180ae62c88fcd0af6</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="gzip-1.8" type="package/src" seq="19" cdto="yes" download="no" extract="yes">
+		    <filename>gzip-1.8.tar.xz</filename>
+		    <version>1.8</version>
+		    <checksum type="md5">f7caabb65cddc1a4165b398009bd05b9</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="m4-1.4.17" type="package/src" seq="20" cdto="yes" download="no" extract="yes">
+		    <filename>m4-1.4.17.tar.xz</filename>
+		    <version>1.4.17</version>
+		    <checksum type="md5">12a3c829301a4fd6586a57d3fcf196dc</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="make-4.2.1" type="package/src" seq="21" cdto="yes" download="no" extract="yes">
+		    <filename>make-4.2.1.tar.bz2</filename>
+		    <version>4.2.1</version>
+		    <checksum type="md5">15b012617e7c44c0ed482721629577ac</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=/tools --without-guile</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="patch-2.7.5" type="package/src" seq="22" cdto="yes" download="no" extract="yes">
+		    <filename>patch-2.7.5.tar.xz</filename>
+		    <version>2.7.5</version>
+		    <checksum type="md5">e3da7940431633fb65a01b91d3b7a27a</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=/tools</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="perl-5.24.0" type="package/src" seq="23" cdto="yes" download="no" extract="yes">
+		    <filename>perl-5.24.0.tar.bz2</filename>
+		    <version>5.24.0</version>
+		    <checksum type="md5">99f39abe614b50719d9915431e54fc1e</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">sh Configure -des -Dprefix=$PROJECT__TOL -Dlibs=-lm</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">cp -v perl cpan/podlators/scripts/pod2man $PROJECT__TOL/bin</line>
+                <line verbos="yes">mkdir -pv $PROJECT__TOL/lib/perl5/5.24.0</line>
+                <line verbos="yes">cp -Rv lib/* $PROJECT__TOL/lib/perl5/5.24.0</line>
+            </action>
+		</entry>
+		
+		<entry name="sed-4.2.2" type="package/src" seq="24" cdto="yes" download="no" extract="yes">
+		    <filename>sed-4.2.2.tar.bz2</filename>
+		    <version>4.2.2</version>
+		    <checksum type="md5">7ffe1c7cdc3233e1e0c4b502df253974</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="tar-1.29" type="package/src" seq="25" cdto="yes" download="no" extract="yes">
+		    <filename>tar-1.29.tar.xz</filename>
+		    <version>1.29</version>
+		    <checksum type="md5">a1802fec550baaeecff6c381629653ef</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="texinfo-6.1" type="package/src" seq="25" cdto="yes" download="no" extract="yes">
+		    <filename>texinfo-6.1.tar.xz</filename>
+		    <version>6.1</version>
+		    <checksum type="md5">1d7ec1888fae00730693597852b00cde</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="util-linux-2.28.1" type="package/src" seq="26" cdto="yes" download="no" extract="yes">
+		    <filename>util-linux-2.28.1.tar.xz</filename>
+		    <version>2.28.1</version>
+		    <checksum type="md5">e2d863efaf4fd330a42c5efe9f1b02b4</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">
+					./configure                             \
+						--prefix=/tools                     \
+						--without-python                    \
+						--disable-makeinstall-chown         \
+						--without-systemdsystemunitdir      \
+						--enable-libmount-force-mountinfo   \
+						PKG_CONFIG=""
+                </line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="xz-5.2.2" type="package/src" seq="27" cdto="yes" download="no" extract="yes">
+		    <filename>xz-5.2.2.tar.xz</filename>
+		    <version>5.2.2</version>
+		    <checksum type="md5">e26772b69940085c0632589ab1d52e64</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+	</phase>
+	
+	
+	
+	<phase seq="2">
+		
+		<entry name="libgpg-error-1.24" type="package/src" seq="1" cdto="yes" download="no" extract="yes">
+		    <filename>libgpg-error-1.24.tar.bz2</filename>
+		    <version>1.24</version>
+		    <checksum type="md5">feb42198c0aaf3b28eabe8f41a34b983</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=$PROJECT__TOL &amp;&amp; make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="libgcrypt-1.7.3" type="package/src" seq="2" cdto="yes" download="no" extract="yes">
+		    <filename>libgcrypt-1.7.3.tar.bz2</filename>
+		    <version>1.7.3</version>
+		    <checksum type="md5">c869e542cc13a1c28d8055487bf7f5c4</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">./configure --prefix=$PROJECT__TOL &amp;&amp; make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="expat-2.2.0" type="package/src" seq="3" cdto="yes" download="no" extract="yes">
+		    <filename>expat-2.2.0.tar.bz2</filename>
+		    <version>2.2.0</version>
+		    <checksum type="md5">2f47841c829facb346eb6e3fab5212e2</checksum>
+            <action when="after" seq="1">
+				<line verbos="yes">./configure --prefix=$PROJECT__TOL --disable-static</line>
+				<line verbos="yes">make</line>
+				<line verbos="yes">make install</line>
+			</action>
+		</entry>
+		
+		<entry name="zlib-1.2.8" type="package/src" seq="5" cdto="yes" download="no" extract="yes">
+		    <filename>zlib-1.2.8.tar.xz</filename>
+		    <version>1.2.8</version>
+		    <checksum type="md5">28f1205d8dd2001f26fec1e8c2cebe37</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="Python-2.7.12.tar.xz" type="package/src" seq="4" cdto="yes" download="no" extract="yes">
+		    <filename>Python-2.7.12.tar.xz</filename>
+		    <version>2.7.12</version>
+		    <checksum type="md5">57dffcee9cee8bb2ab5f82af1d8e9a69</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">
+					./configure --prefix=$PROJECT__TOL   \
+								--enable-shared          \
+								--with-system-expat      \
+								--enable-unicode=ucs4
+            	</line>
+            	<line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+                <line verbos="yes">chmod -v 755 $PROJECT__TOL/lib/libpython2.7.so.1.0</line>
+            </action>
+		</entry>
+		
+		<entry name="libxml2-2.9.4" type="package/src" seq="6" cdto="yes" download="no" extract="yes">
+		    <filename>libxml2-2.9.4.tar.gz</filename>
+		    <version>2.9.4</version>
+		    <checksum type="md5">ae249165c173b1ff386ee8ad676815f5</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">sed -i "/seems to be moved/s/^/#/" ltmain.sh</line>
+				<line verbos="yes">./configure --prefix=$PROJECT__TOL --disable-static --with-history</line>
+            	<line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+                <line verbos="yes">cp -R $PROJECT__TOL/include/libxml2/libxml $PROJECT__TOL/include/</line>
+            </action>
+		</entry>
+		
+		<entry name="libxslt-1.1.29" type="package/src" seq="7" cdto="yes" download="no" extract="yes">
+		    <filename>libxslt-1.1.29.tar.gz</filename>
+		    <version>1.1.29</version>
+		    <checksum type="md5">a129d3c44c022de3b9dcf6d6f288d72e</checksum>
+            <action when="after" seq="1">
+            	<line verbos="yes">sed -i "/seems to be moved/s/^/#/" ltmain.sh</line>
+				<line verbos="yes">./configure --prefix=$PROJECT__TOL --disable-static</line>
+            	<line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+		<entry name="xmlstarlet-1.6.1" type="package/src" seq="8" cdto="yes" download="no" extract="yes">
+		    <filename>xmlstarlet-1.6.1.tar.gz</filename>
+		    <version>1.6.1</version>
+		    <checksum type="md5">f3c5dfa3b1a2ee06cd57c255cc8b70a0</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL --enable-ipv6=no</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+                <line verbos="yes">ln -sf ./xml $PROJECT__TOL/bin/xmlstarlet</line>
+            </action>
+		</entry>
+		
+		<entry name="bc-1.06.95" type="package/src" seq="9" cdto="yes" download="no" extract="yes">
+		    <filename>bc-1.06.95.tar.bz2</filename>
+		    <version>1.06.95</version>
+		    <checksum type="md5">5126a721b73f97d715bb72c13c889035</checksum>
+            <action when="after" seq="1">
+                <line verbos="yes">./configure --prefix=$PROJECT__TOL</line>
+                <line verbos="yes">make</line>
+                <line verbos="yes">make install</line>
+            </action>
+		</entry>
+		
+	</phase>
+	
+	
+	
+	<phase seq="3">
+		<entry type="script/bash" seq="1" cdto="no" download="no" extract="no">
+			<action when="before" seq="1">
+				<line>set +e</line>
+				
+				<line>strip --strip-debug /tools/lib/*</line>
+				<line>/usr/bin/strip --strip-unneeded /tools/{,s}bin/*</line>
+				
+				<line>rm -rf /tools/{,share}/{info,man,doc}</line>
+			</action>
+			
+			<action when="before" seq="2">
+				<line sudo="yes">chown -R root:root $PROJECT__RFS/tools</line>
+				
+				<line>mkdir -pv $PROJECT__RFS/{dev,proc,sys,run}</line>
+				
+				<line sudo="yes">mknod -m 600 $PROJECT__RFS/dev/console c 5 1</line>
+				<line sudo="yes">mknod -m 666 $PROJECT__RFS/dev/null c 1 3</line>
+				
+				<line sudo="yes">mount -v --bind /dev $PROJECT__RFS/dev</line>
+				<line sudo="yes">mount -vt devpts devpts $PROJECT__RFS/dev/pts -o gid=5,mode=620</line>
+				<line sudo="yes">mount -vt proc proc $PROJECT__RFS/proc</line>
+				<line sudo="yes">mount -vt sysfs sysfs $PROJECT__RFS/sys</line>
+				<line sudo="yes">mount -vt tmpfs tmpfs $PROJECT__RFS/run</line>
+				
+				<line>
+					if [[ -h $PROJECT__RFS/dev/shm ]]; then
+						mkdir -pv $PROJECT__RFS/$(readlink $PROJECT__RFS/dev/shm)
+					fi
+				</line>
+			</action>
+		</entry>
+		
+	</phase>
+	
+</build>
+

@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+
+<build name="minux" type="live" subject="rootfs" constructor="yes" stage="02" in-chroot="yes" arch="x86_64" version="0.0.2">
+
+	<phase seq="1">
+		<entry type="script/bash" seq="1" cdto="no" download="no" extract="no">
+			<action when="before" seq="1">
+				<line verbos="yes">mkdir -pv /{bin,boot,etc/{opt,sysconfig},home,lib/firmware,mnt,opt}</line>
+				<line verbos="yes">mkdir -pv /{media/{floppy,cdrom},sbin,srv,var}</line>
+				<line verbos="yes">install -dv -m 0750 /root</line>
+				<line verbos="yes">install -dv -m 1777 /tmp /var/tmp</line>
+				<line verbos="yes">mkdir -pv /usr/{,local/}{bin,include,lib,sbin,src}</line>
+				<line verbos="yes">mkdir -pv /usr/{,local/}share/{color,dict,doc,info,locale,man}</line>
+				<line verbos="yes">mkdir -v /usr/{,local/}share/{misc,terminfo,zoneinfo}</line>
+				<line verbos="yes">mkdir -v /usr/libexec</line>
+				<line verbos="yes">mkdir -pv /usr/{,local/}share/man/man{1..8}</line>
+				
+				<line verbos="yes">
+					case $(uname -m) in
+					x86_64) ln -sv lib /lib64
+							ln -sv lib /usr/lib64
+							ln -sv lib /usr/local/lib64 ;;
+					esac
+				</line>
+				
+				<line verbos="yes">mkdir -v /var/{log,mail,spool}</line>
+				<line verbos="yes">ln -sv /run /var/run</line>
+				<line verbos="yes">ln -sv /run/lock /var/lock</line>
+				<line verbos="yes">mkdir -pv /var/{opt,cache,lib/{color,misc,locate},local}</line>
+				
+				<line verbos="yes">ln -sv /tools/bin/{bash,cat,echo,pwd,stty} /bin</line>
+				<line verbos="yes">ln -sv /tools/bin/perl /usr/bin</line>
+				<line verbos="yes">ln -sv /tools/lib/libgcc_s.so{,.1} /usr/lib</line>
+				<line verbos="yes">ln -sv /tools/lib/libstdc++.so{,.6} /usr/lib</line>
+				<line verbos="yes">sed 's/tools/usr/' /tools/lib/libstdc++.la > /usr/lib/libstdc++.la</line>
+				<line verbos="yes">ln -sv bash /bin/sh</line>
+				
+				<line verbos="yes">ln -sv /proc/self/mounts /etc/mtab</line>
+				<line verbos="yes">
+					cat > /etc/passwd &lt;&lt;-EOF
+					root:x:0:0:root:/root:/bin/bash
+					bin:x:1:1:bin:/dev/null:/bin/false
+					daemon:x:6:6:Daemon User:/dev/null:/bin/false
+					messagebus:x:18:18:D-Bus Message Daemon User:/var/run/dbus:/bin/false
+					systemd-bus-proxy:x:72:72:systemd Bus Proxy:/:/bin/false
+					systemd-journal-gateway:x:73:73:systemd Journal Gateway:/:/bin/false
+					systemd-journal-remote:x:74:74:systemd Journal Remote:/:/bin/false
+					systemd-journal-upload:x:75:75:systemd Journal Upload:/:/bin/false
+					systemd-network:x:76:76:systemd Network Management:/:/bin/false
+					systemd-resolve:x:77:77:systemd Resolver:/:/bin/false
+					systemd-timesync:x:78:78:systemd Time Synchronization:/:/bin/false
+					systemd-coredump:x:79:79:systemd Core Dumper:/:/bin/false
+					nobody:x:99:99:Unprivileged User:/dev/null:/bin/false
+					EOF
+				</line>
+				
+				<line verbos="yes">
+					cat > /etc/group &lt;&lt;-EOF
+					root:x:0:
+					bin:x:1:daemon
+					sys:x:2:
+					kmem:x:3:
+					tape:x:4:
+					tty:x:5:
+					daemon:x:6:
+					floppy:x:7:
+					disk:x:8:
+					lp:x:9:
+					dialout:x:10:
+					audio:x:11:
+					video:x:12:
+					utmp:x:13:
+					usb:x:14:
+					cdrom:x:15:
+					adm:x:16:
+					messagebus:x:18:
+					systemd-journal:x:23:
+					input:x:24:
+					mail:x:34:
+					systemd-bus-proxy:x:72:
+					systemd-journal-gateway:x:73:
+					systemd-journal-remote:x:74:
+					systemd-journal-upload:x:75:
+					systemd-network:x:76:
+					systemd-resolve:x:77:
+					systemd-timesync:x:78:
+					systemd-coredump:x:79:
+					nogroup:x:99:
+					users:x:999:
+					EOF
+				</line>
+				
+				<line verbos="yes">
+					cat > /etc/ld.so.conf &lt;&lt;-EOF
+					# Begin /etc/ld.so.conf
+					/usr/local/lib
+					/opt/lib
+					EOF
+				</line>
+				
+				<line verbos="yes">
+					cat >> /etc/ld.so.conf &lt;&lt;-EOF
+					# Add an include directory
+					include /etc/ld.so.conf.d/*.conf
+					EOF
+				</line>
+				
+				<line verbos="yes">
+					cat > /etc/nsswitch.conf &lt;&lt;-EOF
+					# Begin /etc/nsswitch.conf
+					passwd: files
+					group: files
+					shadow: files
+					hosts: files dns
+					networks: files
+					protocols: files
+					services: files
+					ethers: files
+					rpc: files
+					# End /etc/nsswitch.conf
+					EOF
+				</line>
+				
+				<line verbos="yes">touch /var/log/{btmp,lastlog,faillog,wtmp}</line>
+				<line verbos="yes">chgrp -v utmp /var/log/lastlog</line>
+				<line verbos="yes">chmod -v 664 /var/log/lastlog</line>
+				<line verbos="yes">chmod -v 600 /var/log/btmp</line>
+				
+				<line verbos="yes">mkdir -pv /etc/ld.so.conf.d</line>
+				
+				<line verbos="yes">exec /tools/bin/bash --login +h</line>
+			</action>
+       	</entry>
+	</phase>
+	
+</build>
+
