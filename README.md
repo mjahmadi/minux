@@ -1,0 +1,2 @@
+# minux
+Minimal Linux distro
